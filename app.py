@@ -60,7 +60,7 @@ async def healthz():
 
 
 @app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest, x_user_id: Annotated[str | None, Header()] = None):
+async def chat(request: ChatRequest):
     """Chat endpoint for interacting with the agent."""
     if not request.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
@@ -75,10 +75,9 @@ async def chat(request: ChatRequest, x_user_id: Annotated[str | None, Header()] 
     ):
         raise HTTPException(status_code=400, detail="Invalid conversation_id")
 
-    # If user_id is provided via a secure header, set it in the context.
-    # This enables multi-tenant profile management while preventing IDOR.
-    # In a real-world scenario, this should be verified (e.g., via JWT or IAP).
-    current_user_id.set(x_user_id or "default_user")
+    # In a real-world scenario, the user identity should be verified (e.g., via JWT or IAP).
+    # To prevent impersonation, we do not trust unverified headers.
+    current_user_id.set("default_user")
 
     # Ensure the trajectory file exists so the harness doesn't fail
     ensure_trajectory_exists(conversation_id, SAVE_DIR)
