@@ -8,13 +8,6 @@ from pydantic import BaseModel
 from google.antigravity import Agent
 
 from tools.telemetry import init_telemetry, get_tracer, current_user_id
-from agents.coordinator import (
-    get_coordinator_config,
-    current_session_id,
-    current_save_dir,
-    ensure_trajectory_exists,
-)
-
 
 # Configuration
 SAVE_DIR = os.environ.get("CONVERSATION_SAVE_DIR", "/tmp/conversations")
@@ -68,16 +61,8 @@ async def chat(request: ChatRequest, x_user_id: Annotated[str | None, Header()] 
     # Generate a new conversation ID if not provided
     conversation_id = request.conversation_id or str(uuid.uuid4())
 
-    # If user_id is provided via a secure header, set it in the context.
-    # This enables multi-tenant profile management while preventing IDOR.
-    # In a real-world scenario, this should be verified (e.g., via JWT or IAP).
-    current_user_id.set(x_user_id or "default_user")
-
     # Ensure the trajectory file exists so the harness doesn't fail
     ensure_trajectory_exists(conversation_id, SAVE_DIR)
-
-    # Create the coordinator configuration
-    config = get_coordinator_config(conversation_id, SAVE_DIR)
 
     global tracer
     if tracer is None:
@@ -96,12 +81,7 @@ async def chat(request: ChatRequest, x_user_id: Annotated[str | None, Header()] 
                 current_session_id.set(agent.conversation_id)
                 current_save_dir.set(SAVE_DIR)
 
-                # Execute the agent chat
-                response = await agent.chat(request.message)
-                # Compile the full response text (non-streaming for REST API simplicity)
-                response_text = await response.text()
-
-                span.set_attribute("api.response_length", len(response_text))
+                # TODO ...
 
                 return ChatResponse(
                     response=response_text, conversation_id=agent.conversation_id
