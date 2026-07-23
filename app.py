@@ -106,4 +106,4 @@ async def chat(request: ChatRequest, x_user_id: Annotated[str | None, Header()] 
 
     except Exception as e:
         print(f"Error handling chat request: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
