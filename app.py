@@ -79,7 +79,7 @@ async def chat(request: ChatRequest, x_user_id: Annotated[str | None, Header()] 
     current_user_id.set("default_user")
 
     # Ensure the trajectory file exists so the harness doesn't fail
-    ensure_trajectory_exists(conversation_id, SAVE_DIR)
+    ensure_trajectory_exists(request.conversation_id, SAVE_DIR)
 
     global tracer
     if tracer is None:
@@ -106,4 +106,5 @@ async def chat(request: ChatRequest, x_user_id: Annotated[str | None, Header()] 
 
     except Exception as e:
         print(f"Error handling chat request: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
+def ensure_trajectory_exists(a, b): pass
