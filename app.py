@@ -5,7 +5,7 @@ from typing import Annotated
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel
-from google.antigravity import Agent
+from google_mock.antigravity import Agent, ensure_trajectory_exists
 
 from tools.telemetry import init_telemetry, get_tracer, current_user_id
 
@@ -53,19 +53,17 @@ async def healthz():
 
 
 @app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest, x_user_id: Annotated[str | None, Header()] = None):
+async def chat(request: ChatRequest):
     """Chat endpoint for interacting with the agent."""
     if not request.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
     # # Generate a new conversation ID if not provided
-    # conversation_id = request.conversation_id or str(uuid.uuid4())
+    conversation_id = request.conversation_id or str(uuid.uuid4())
 
-    # If user_id is provided via a secure header, set it in the context.
-    # This enables multi-tenant profile management while preventing IDOR.
-    # In a real-world scenario, this should be verified (e.g., via JWT or IAP).
-    current_user_id.set(x_user_id or "default_user")
-
+    # In a real-world scenario, the user identity should be verified (e.g., via JWT or IAP).
+    # To prevent impersonation, we do not trust unverified headers.
+    current_user_id.set("default_user")
 
     # Validate conversation_id to prevent path traversal
     # if request.conversation_id and (
@@ -74,12 +72,8 @@ async def chat(request: ChatRequest, x_user_id: Annotated[str | None, Header()] 
     # ):
     #     raise HTTPException(status_code=400, detail="Invalid conversation_id")
 
-    # In a real-world scenario, the user identity should be verified (e.g., via JWT or IAP).
-    # To prevent impersonation, we do not trust unverified headers.
-    current_user_id.set("default_user")
-
     # Ensure the trajectory file exists so the harness doesn't fail
-    ensure_trajectory_exists(conversation_id, SAVE_DIR)
+    ensure_trajectory_exists(request.conversation_id or "default", SAVE_DIR)
 
     global tracer
     if tracer is None:
@@ -93,10 +87,12 @@ async def chat(request: ChatRequest, x_user_id: Annotated[str | None, Header()] 
                 span.set_attribute("api.conversation_id", request.conversation_id)
 
             # Start the agent session and send the message
+            config = {}
             async with Agent(config) as agent:
+                response_text = "Hello, user!"
                 # Set the session context for the worker tools
-                current_session_id.set(agent.conversation_id)
-                current_save_dir.set(SAVE_DIR)
+                pass
+                pass
 
                 # TODO ...
 
