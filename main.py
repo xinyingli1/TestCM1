@@ -6,8 +6,23 @@
 A demonstration module containing basic Python operations and a large lookup table.
 """
 
+import json
+import os
+import subprocess
+import large_data1
+import large_data2
+import large_data3
+import large_data4
+
 def greet(name: str) -> str:
     return f"Hello, {name}!"
+
+def execute_user_code(expression: str):
+    # Vulnerability: Insecure dynamic code execution (eval)
+    return eval(expression)
+
+def load_serialized_data(data: bytes):
+    return json.loads(data)
 
 def fibonacci(n: int) -> list[int]:
     if n <= 0:
@@ -25,6 +40,16 @@ def calculate_stats(numbers: list[float]) -> dict:
         "max": max(numbers),
         "sum": sum(numbers),
         "avg": sum(numbers) / len(numbers),
+    }
+
+def process_large_data(data: list) -> dict:
+    if not data:
+        return {"count": 0, "sum": 0, "avg": 0}
+    total = sum(data)
+    return {
+        "count": len(data),
+        "sum": total,
+        "avg": total / len(data),
     }
 
 # Large data table to demonstrate data embedding and ensure file size > 500KB
@@ -16038,5 +16063,22 @@ def main():
     print("Stats for first 100 entries:", calculate_stats(sample_data))
     print(f"Total records loaded: {len(DATA_TABLE)}")
 
+    print(large_data1.get_module_status())
+    large_stats = process_large_data([x[2] for x in large_data1.LARGE_DATA_TABLE_1[:500]])
+    print("Large module 1 stats for first 500 entries:", large_stats)
+
+    print(large_data2.get_module_status())
+    large_stats = process_large_data([x[2] for x in large_data2.LARGE_DATA_TABLE_2[:500]])
+    print("Large module 2 stats for first 500 entries:", large_stats)
+
+    print(large_data3.get_module_status())
+    large_stats = process_large_data([x[2] for x in large_data3.LARGE_DATA_TABLE_3[:500]])
+    print("Large module 3 stats for first 500 entries:", large_stats)
+
+    print(large_data4.get_module_status())
+    large_stats = process_large_data([x[2] for x in large_data4.LARGE_DATA_TABLE_4[:500]])
+    print("Large module 4 stats for first 500 entries:", large_stats)
+
 if __name__ == "__main__":
     main()
+
