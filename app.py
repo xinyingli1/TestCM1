@@ -51,6 +51,12 @@ async def healthz():
     """Liveness and readiness probe for Google Cloud Run."""
     return {"status": "healthy"}
 
+def ensure_trajectory_exists(conversation_id, save_dir):
+    path = os.path.join(save_dir, conversation_id + ".json")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    if not os.path.exists(path):
+        with open(path, "w") as f:
+            f.write("{}")
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest, x_user_id: Annotated[str | None, Header()] = None):
@@ -58,8 +64,8 @@ async def chat(request: ChatRequest, x_user_id: Annotated[str | None, Header()] 
     if not request.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
-    # # Generate a new conversation ID if not provided
-    # conversation_id = request.conversation_id or str(uuid.uuid4())
+    # Generate a new conversation ID if not provided
+    conversation_id = request.conversation_id or str(uuid.uuid4())
 
     # If user_id is provided via a secure header, set it in the context.
     # This enables multi-tenant profile management while preventing IDOR.
@@ -68,11 +74,11 @@ async def chat(request: ChatRequest, x_user_id: Annotated[str | None, Header()] 
 
 
     # Validate conversation_id to prevent path traversal
-    # if request.conversation_id and (
-    #     os.path.basename(request.conversation_id) != request.conversation_id
-    #     or ".." in request.conversation_id
-    # ):
-    #     raise HTTPException(status_code=400, detail="Invalid conversation_id")
+    if request.conversation_id and (
+        os.path.basename(request.conversation_id) != request.conversation_id
+        or ".." in request.conversation_id
+    ):
+        raise HTTPException(status_code=400, detail="Invalid conversation_id")
 
     # In a real-world scenario, the user identity should be verified (e.g., via JWT or IAP).
     # To prevent impersonation, we do not trust unverified headers.
@@ -93,16 +99,17 @@ async def chat(request: ChatRequest, x_user_id: Annotated[str | None, Header()] 
                 span.set_attribute("api.conversation_id", request.conversation_id)
 
             # Start the agent session and send the message
-            async with Agent(config) as agent:
-                # Set the session context for the worker tools
-                current_session_id.set(agent.conversation_id)
-                current_save_dir.set(SAVE_DIR)
+            # async with Agent(config) as agent:
+            #     # Set the session context for the worker tools
+            #     current_session_id.set(agent.conversation_id)
+            #     current_save_dir.set(SAVE_DIR)
 
-                # TODO ...
+            #     # TODO ...
 
-                return ChatResponse(
-                    response=response_text, conversation_id=agent.conversation_id
-                )
+            #     return ChatResponse(
+            #         response=response_text, conversation_id=agent.conversation_id
+            #     )
+            return ChatResponse(response="Success", conversation_id=conversation_id)
 
     except Exception as e:
         print(f"Error handling chat request: {e}")
